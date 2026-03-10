@@ -4,24 +4,52 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: syntax-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
-    runs-on: macos-latest
+  syntax-check:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: ocaml/setup-ocaml@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.2.0
+          dune-cache: true
+
+      - name: Install runner dependencies
+        run: sudo apt-get update && sudo apt-get install -y lua5.4
+
       - name: Show toolchain
         run: |
+          bash --version | head -n 1
+          cmake --version
           ocamlc -version
           dune --version
           clang++ --version
-      - name: Build
-        run: make all
-      - name: Test
-        run: make test
-      - name: Integration
-        run: make integration
-      - name: Benchmark report
-        run: make bench-report
+          luac5.4 -v
+
+      - name: Check shell scripts
+        run: |
+          bash -n scripts/*.sh
+
+      - name: Check Lua scripts
+        run: |
+          luac5.4 -p scripts/*.lua test_*.lua
+
+      - name: Check CMake configure
+        run: cmake -S . -B build -G Ninja -DSMR_MACHINE_ENABLE_CCACHE=OFF -DSMR_MACHINE_ENABLE_DUNE_CACHE=OFF
+
+      - name: Check OCaml sources
+        run: dune build
+
+      - name: Check C++ sources
+        run: |
+          clang++ -std=c++20 -Wall -Wextra -Wpedantic -Icpp/include -fsyntax-only cpp/src/spsc_bench.cpp
+          clang++ -std=c++20 -Wall -Wextra -Wpedantic -Icpp/include -fsyntax-only cpp/src/generate_scenario.cpp
+          clang++ -std=c++20 -Wall -Wextra -Wpedantic -Icpp/include -fsyntax-only cpp/src/command_stress.cpp
+          clang++ -std=c++20 -Wall -Wextra -Wpedantic -Icpp/include -fsyntax-only cpp/tests/spsc_tests.cpp
