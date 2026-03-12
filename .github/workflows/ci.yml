@@ -15,23 +15,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up OCaml 
+      - name: Set up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.2.0
           dune-cache: true
+          opam-depext: true
 
       - name: Install runner dependencies
-        run: sudo apt-get update && sudo apt-get install -y lua5.4 opam ninja-build
+        run: sudo apt-get update && sudo apt-get install -y lua5.4 ninja-build
 
-      - name: Install dune & opam switch
+      - name: Install dune
         run: |
           opam install dune
-          echo 'eval $(opam env)' >> ~/.bashrc
-        
+          eval $(opam env)
 
       - name: Show toolchain
         run: |
+          eval $(opam env)
           bash --version | head -n 1
           cmake --version
           ocamlc -version
@@ -40,18 +41,18 @@ jobs:
           luac5.4 -v
 
       - name: Check shell scripts
-        run: |
-          bash -n scripts/*.sh
+        run: bash -n scripts/*.sh
 
       - name: Check Lua scripts
-        run: |
-          luac5.4 -p scripts/*.lua test_*.lua
+        run: luac5.4 -p scripts/*.lua test_*.lua
 
       - name: Check CMake configure
         run: cmake -S . -B build -G Ninja -DSMR_MACHINE_ENABLE_CCACHE=OFF -DSMR_MACHINE_ENABLE_DUNE_CACHE=OFF
 
       - name: Check OCaml sources
-        run: dune build
+        run: |
+          eval $(opam env)
+          dune build
 
       - name: Check C++ sources
         run: |
