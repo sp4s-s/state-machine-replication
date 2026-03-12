@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up OCaml
+      - name: Set up OCaml 
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.2.0
@@ -26,8 +26,8 @@ jobs:
 
       - name: Install dune & opam switch
         run: |
-          echo 'eval $(opam env)' >> ~/.bashrc
           opam install dune
+          echo 'eval $(opam env)' >> ~/.bashrc
         
 
       - name: Show toolchain
